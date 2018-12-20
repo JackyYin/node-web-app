@@ -2,6 +2,7 @@
 
 const express = require('express');
 const mongoose = require('mongoose')
+const bodyParser = require('body-parser')
 
 // Constants
 const PORT = 8080;
@@ -11,6 +12,15 @@ mongoose.connect('mongodb://' + process.env.DB_USERNAME + ':' + process.env.DB_P
 
 // App
 const app = express();
+
+//middleware
+app.use(bodyParser.json())
+
+//route definition
+const routes = require("./routes");
+
+app.use("/api/v1/auth", routes.auth);
+
 app.get('/', (req, res) => {
   res.send('Hello world\n');
 });
