@@ -32,7 +32,7 @@ module.exports = (passport) => {
       secretOrKey: process.env.JWT_SECRET,
     },
     (jwtPayload, done) => {
-      if (jwtPayload.expires > Date.now()) {
+      if (jwtPayload.exp < Date.now() / 1000) {
         return done('jwt expired');
       }
 
