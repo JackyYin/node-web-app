@@ -1,8 +1,10 @@
 'use strict';
 
 const express = require('express');
-const mongoose = require('mongoose')
-const bodyParser = require('body-parser')
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
+const passport = require('passport');
+require("./passportStrategy")(passport);
 
 // Constants
 const PORT = 8080;
@@ -14,7 +16,8 @@ mongoose.connect('mongodb://' + process.env.DB_USERNAME + ':' + process.env.DB_P
 const app = express();
 
 //middleware
-app.use(bodyParser.json())
+app.use(bodyParser.json());
+app.use(passport.initialize());
 
 //route definition
 const routes = require("./routes");
