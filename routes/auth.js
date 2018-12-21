@@ -54,13 +54,17 @@ router.post('/login',
   }
 );
 
-router.get('/protected',
-  passport.authenticate('jwt', {session: false}),
-  (req, res) => {
-    const { user } = req;
+router.get('/protected', (req, res, next) => {
+  passport.authenticate('jwt', {session: false}, (err, payload, info) => {
+    if (err || !payload) {
+        res.status(401).send({
+          error: info.message
+        });
+    }
 
-    res.status(200).send({ user });
-  }
-);
+    res.status(200).send({ payload });
+
+  })(req, res, next);
+});
 
 module.exports = router;
