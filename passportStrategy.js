@@ -5,25 +5,26 @@ module.exports = (passport) => {
   const ExtractJwt = passportJWT.ExtractJwt;
   const bcrypt = require('bcrypt');
 
-  const UserModel = require('./models/user');
+  const User = require('./models/user');
 
   passport.use(new LocalStrategy({
       usernameField: 'email',
       passwordField: 'password'
     },
     async (email, password, done) => {
-      try {
-        const userDocument = await UserModel.findOne({email: email}).exec();
-        const passwordsMatch = await bcrypt.compare(password, userDocument.passwordHash);
+      await User.findOne({ email: email }, (err, user) => {
+        if (err) return done(err);
+        if (!user) return done(null, false, { message: 'Incorrect email.' });
 
-        if (passwordsMatch) {
-          return done(null, userDocument);
-        } else {
-          return done('Incorrect Username / Password');
-        }
-      } catch (error) {
-        done(error);
-      }
+        user.comparePassword(password, (err, passwordMatch) => {
+          if (passwordMatch) {
+            return done(null, user);
+          } else {
+            console.log(err);
+            return done(null, false, { message: 'Incorrect password.' });
+          }
+        });
+      });
     }
   ));
 
