@@ -3,6 +3,7 @@ const passport = require('passport');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/user');
+const JWTMiddleware = require('../middleware/passportJWT');
 
 const router = express.Router();
 
@@ -54,17 +55,10 @@ router.post('/login',
   }
 );
 
-router.get('/protected', (req, res, next) => {
-  passport.authenticate('jwt', {session: false}, (err, payload, info) => {
-    if (err || !payload) {
-        res.status(401).send({
-          error: info.message
-        });
-    }
-
-    res.status(200).send({ payload });
-
-  })(req, res, next);
+router.get('/protected', JWTMiddleware.JWTAuthentication, (req, res) => {
+  res.status(200).send({
+    user: req.payload
+  });
 });
 
 module.exports = router;
