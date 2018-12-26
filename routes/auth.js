@@ -82,14 +82,14 @@ router.post('/forgot', (req, res) => {
         });
       });
     },
-    (token, user, done) => {
+    async (token, user, done) => {
       var html = '<body>' +
         'You are receiving this because you (or someone else) have requested the reset of the password for your account.<p>' +
         'Please click on the following link, or paste this into your browser to complete the process:<p>' +
         '<a href="http://' + req.headers.host + '/reset/' + token  + '">Reset</a><p>' +
         'If you did not request this, please ignore this email and your password will remain unchanged.</body>'
 
-      emailService.send(user.email, 'Password Reset Link', html, (err, info) => {
+      await emailService.send(user.email, 'Password Reset Link', html, (err, info) => {
         if(err) {
           console.log('Unable to send email: ' + err);
         }
