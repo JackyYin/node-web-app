@@ -2,7 +2,10 @@ const express = require('express');
 const passport = require('passport');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const UserModel = require('../models/user');
+const async = require('async');
+const crypto = require('crypto');
+const emailService = require('../email');
+const User = require('../models/user');
 const JWTMiddleware = require('../middleware/passportJWT');
 
 const router = express.Router();
@@ -14,7 +17,7 @@ router.post('/register', async (req, res) => {
 
   try {
     const passwordHash = await bcrypt.hash(password, saltRounds);
-    const userDocument = new UserModel({ email, passwordHash });
+    const userDocument = new User({ email, passwordHash });
     await userDocument.save();
     res.status(200).send({ email });
 
@@ -54,6 +57,57 @@ router.post('/login',
       return res.send({ token: token });
   }
 );
+
+router.post('/forgot', (req, res) => {
+  async.waterfall([
+    (done) => {
+      crypto.randomBytes(20, (err, buf) => {
+        var token = buf.toString('hex');
+        done(err, token);
+      });
+    },
+    (token, done) => {
+      User.findOne({ email: req.body.email }, (err, user) => {
+        if (!user) {
+          return res.status(400).send({
+            'error': 'No account with that email address exists.'
+          });
+        }
+
+        user.resetPasswordToken = token;
+        user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+
+        user.save((err) => {
+          done(err, token, user);
+        });
+      });
+    },
+    (token, user, done) => {
+      var html = '<body>' +
+        'You are receiving this because you (or someone else) have requested the reset of the password for your account.<p>' +
+        'Please click on the following link, or paste this into your browser to complete the process:<p>' +
+        '<a href="http://' + req.headers.host + '/reset/' + token  + '">Reset</a><p>' +
+        'If you did not request this, please ignore this email and your password will remain unchanged.</body>'
+
+      emailService.send(user.email, 'Password Reset Link', html, (err, info) => {
+        if(err) {
+          console.log('Unable to send email: ' + err);
+        }
+        done(err);
+      });
+    }
+  ], (err) => {
+    if (err) {
+      console.log(err);
+      res.status(500).send({
+        'error': err
+      });
+    }
+    res.status(200).send({
+      'message': 'The Password Reset Email Has Been Sent.'
+    });
+  });
+});
 
 router.get('/protected', JWTMiddleware.JWTAuthentication, (req, res) => {
   res.status(200).send({
