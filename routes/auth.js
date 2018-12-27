@@ -6,7 +6,8 @@ const async = require('async');
 const crypto = require('crypto');
 const emailService = require('../email');
 const User = require('../models/user');
-const JWTMiddleware = require('../middleware/passportJWT');
+const JWTMiddleware   = require('../middleware/passportJWT');
+const LocalMiddleware = require('../middleware/passportLocal');
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.post('/signup', async (req, res) => {
 });
 
 router.post('/login',
-  passport.authenticate('local', {session: false}),
+  LocalMiddleware.LocalAuthentication,
   (req, res) => {
 
     /** This is what ends up in our JWT */
@@ -119,6 +120,46 @@ router.get('/reset/:token', async (req, res) => {
     }
 
     res.status(200).send({ user });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      'error': error
+    });
+  }
+});
+
+router.post('/reset/:token', async (req, res) => {
+  if (req.body.password != req.body.password_confirmation) {
+    res.status(400).sned({
+      'error': 'password must equal to password_confirmation'
+    });
+  }
+
+  try {
+    user = await User.findOne({ resetPasswordToken: req.params.token, resetPasswordExpires: { $gt: Date.now() }}).exec();
+    if (!user) {
+      res.status(400).send({
+        'error': 'Password reset token is invalid or has expired.'
+      });
+    }
+
+    var passwordHash = await bcrypt.hash(req.body.password, 10);
+    user.passwordHash=passwordHash;
+    user.resetPasswordToken=undefined;
+    user.resetPasswordExpires=undefined;
+
+    await user.save();
+
+    var html = '<h1>Hello,</h1>This is a confirmation that the password for your account ' + user.email + ' has been changed.';
+
+    await emailService.send(user.email, 'Your password has been changed', html, (err, info) => {
+      if(err) {
+        console.log('Unable to send email: ' + err);
+      }
+    });
+
+    res.sendStatus(200);
 
   } catch (error) {
     console.log(error);
