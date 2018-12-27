@@ -10,15 +10,15 @@ const JWTMiddleware = require('../middleware/passportJWT');
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+router.post('/signup', async (req, res) => {
   const { email, password } = req.body;
 
   const saltRounds = 10;
 
   try {
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-    const userDocument = new User({ email, passwordHash });
-    await userDocument.save();
+    var passwordHash = await bcrypt.hash(password, saltRounds);
+    var user = new User({ email, passwordHash });
+    await user.save();
     res.status(200).send({ email });
 
   } catch (error) {
