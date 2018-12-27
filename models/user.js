@@ -14,6 +14,8 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date
 });
 
 userSchema.methods.comparePassword = function (candidatePassword, cb) {

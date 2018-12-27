@@ -86,7 +86,7 @@ router.post('/forgot', (req, res) => {
       var html = '<body>' +
         'You are receiving this because you (or someone else) have requested the reset of the password for your account.<p>' +
         'Please click on the following link, or paste this into your browser to complete the process:<p>' +
-        '<a href="http://' + req.headers.host + '/reset/' + token  + '">Reset</a><p>' +
+        '<a href="http://' + req.headers.host + '/api/v1/auth/reset/' + token  + '">Reset</a><p>' +
         'If you did not request this, please ignore this email and your password will remain unchanged.</body>'
 
       await emailService.send(user.email, 'Password Reset Link', html, (err, info) => {
@@ -107,6 +107,25 @@ router.post('/forgot', (req, res) => {
       'message': 'The Password Reset Email Has Been Sent.'
     });
   });
+});
+
+router.get('/reset/:token', async (req, res) => {
+  try {
+    user = await User.findOne({ resetPasswordToken: req.params.token, resetPasswordExpires: { $gt: Date.now() }}).exec();
+    if (!user) {
+      res.status(400).send({
+        'error': 'Password reset token is invalid or has expired.'
+      });
+    }
+
+    res.status(200).send({ user });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      'error': error
+    });
+  }
 });
 
 router.get('/protected', JWTMiddleware.JWTAuthentication, (req, res) => {
