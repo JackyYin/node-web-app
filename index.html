@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Single User Websocket</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.1/socket.io.js"></script>
+  <script>
+    const socketUrl = 'http://localhost:7777';
+
+    let connectButton;
+    let disconnectButton;
+    let socket;
+    let statusInput;
+    let messageBox;
+    let emailInput;
+    let passwordInput;
+
+    let currentPlayer;
+
+    const connect = () => {
+      socket = io(socketUrl, {
+        autoConnect: false,
+      });
+
+      socket.on('connect', () => {
+
+        socket.emit('authentication', {
+          email: emailInput.value,
+          password: passwordInput.value,
+        });
+
+        console.log('Connected');
+        statusInput.value = 'Connected';
+        connectButton.disabled = true;
+        disconnectButton.disabled = false;
+  });
+
+      socket.on('disconnect', (reason) => {
+        console.log(`Disconnected: ${reason}`);
+        statusInput.value = `Disconnected: ${reason}`;
+        connectButton.disabled = false;
+        disconnectButton.disabled = true;
+      });
+
+      socket.on('currentPlayer', (me) => {
+        console.log(me);
+        messageBox.innerHTML += '<br>You have joined the game.';
+        messageBox.innerHTML += '<br>You has joined the ' + me.team + ' team.';
+        currentPlayer = me;
+      });
+
+      socket.on('newPlayer', (player) => {
+        console.log(player);
+        messageBox.innerHTML += '<br>Player: ' + player.playerId + ' has joined the game.';
+        messageBox.innerHTML += '<br>Player: ' + player.playerId + ' has joined the ' + player.team + ' team.';
+      });
+
+      socket.on('playerLeft', (player) => {
+        console.log(player);
+        messageBox.innerHTML += '<br>Player: ' + player.playerId + ' has left the game.';
+        messageBox.innerHTML += '<br>Player: ' + player.playerId + ' has left the ' + player.team + ' team.';
+      });
+
+      socket.on('unauthorized', (reason) => {
+        console.log('Unauthorized:', reason);
+
+        messageBox.innerHTML += '<br>' + reason.message;
+
+        socket.disconnect();
+      });
+
+      socket.open();
+    };
+
+    const disconnect = () => {
+      socket.disconnect();
+      messageBox.innerHTML += '<br>You have left the game.';
+      messageBox.innerHTML += '<br>You has left the ' + currentPlayer.team + ' team.';
+    }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    connectButton = document.getElementById('connect');
+    disconnectButton = document.getElementById('disconnect');
+    statusInput = document.getElementById('status');
+    emailInput = document.getElementById('email');
+    passwordInput = document.getElementById('password');
+    messageBox = document.getElementById('message');
+  });
+
+  </script>
+</head>
+<body>
+  <p>
+    <label for="status">Status: </label>
+    <input type="text" id="status"
+      name="status" value="Disconnected"
+      readonly="readonly" style="width: 300px;"
+    />
+  </p>
+  <p>
+    <label for="email">My Email: </label>
+    <input type="text" id="email" name="email" value="my email" />
+  </p>
+  <p>
+    <label for="password">My Password: </label>
+    <input type="password" id="password" name="password" value="my password" />
+  </p>
+  <p>
+    <button id="connect" onclick="connect()">
+      Connect
+    </button>
+    <button id="disconnect" onclick="disconnect()" disabled>
+      Disconnect
+    </button>
+  </p>
+  <label for="message">Message: </label>
+  <div id="message">Hi</div>
+</body>
+</html>
